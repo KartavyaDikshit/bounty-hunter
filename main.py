@@ -52,11 +52,25 @@ def main():
         clone_repo(fork_url, target_dir)
         create_branch(target_dir, f"fix-issue-{issue['number']}")
         
-    # 5. Hand off to Agent (Placeholder)
+        # Generate PR template script for the AI to use later
+        pr_script_path = os.path.join(target_dir, "create_pr.py")
+        with open(pr_script_path, "w") as f:
+            f.write(f'''import urllib.request, json, os, ssl
+ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
+token = os.environ.get("GITHUB_TOKEN")
+payload = {{"title": "Fix for issue #{issue['number']}", "body": "Closes #{issue['number']}\\n\\nImplemented automated fix.", "head": "KartavyaDikshit:fix-issue-{issue['number']}", "base": "main"}}
+req = urllib.request.Request("https://api.github.com/repos/{issue['repo_name']}/pulls", data=json.dumps(payload).encode(), headers={{'Authorization': f'token {{token}}', 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json'}}, method='POST')
+try:
+    with urllib.request.urlopen(req, context=ctx) as r: print("[+] PR Created:", json.loads(r.read())['html_url'])
+except Exception as e: print("[!] PR Failed:", e)
+''')
+        
+    # 5. Hand off to Agent
     print(f"\n🎉 PIPELINE COMPLETE!")
-    print(f"The repository is ready for you (or an AI agent) at: {target_dir}")
+    print(f"The repository is ready for you (or an AI agent) at: {{target_dir}}")
     print(f"Branch 'fix-issue-{issue['number']}' is checked out.")
-    print("Next step: Trigger Antigravity Agent to read the issue and write code!")
+    print("CRITICAL: AGENT MUST NOW WRITE CODE, COMMIT IT, AND PUSH TO THE FORK!")
+    print("Once pushed, run `python3 create_pr.py` to automatically open the Pull Request.")
 
 if __name__ == "__main__":
     main()
