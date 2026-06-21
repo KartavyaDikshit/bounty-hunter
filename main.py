@@ -58,13 +58,18 @@ def main():
     # Generate PR template script for the AI to use later
     pr_script_path = os.path.join(target_dir, "create_pr.py")
     with open(pr_script_path, "w") as f:
-        f.write(f'''import urllib.request, json, os, ssl
+        f.write(f'''import urllib.request, json, os, ssl, shutil
 ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
 token = os.environ.get("GITHUB_TOKEN")
 payload = {{"title": "Fix for issue #{issue['number']}", "body": "Closes #{issue['number']}\\n\\nImplemented automated fix.", "head": "KartavyaDikshit:fix-issue-{issue['number']}", "base": "main"}}
 req = urllib.request.Request("https://api.github.com/repos/{issue['repo_name']}/pulls", data=json.dumps(payload).encode(), headers={{'Authorization': f'token {{token}}', 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json'}}, method='POST')
 try:
-    with urllib.request.urlopen(req, context=ctx) as r: print("[+] PR Created:", json.loads(r.read())['html_url'])
+    with urllib.request.urlopen(req, context=ctx) as r: 
+        print("[+] PR Created:", json.loads(r.read())['html_url'])
+        print("[*] Cleaning up local repository to save storage...")
+        # Move one directory up before deleting
+        os.chdir("..")
+        shutil.rmtree("{target_dir}", ignore_errors=True)
 except Exception as e: print("[!] PR Failed:", e)
 ''')
         
