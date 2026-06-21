@@ -55,10 +55,10 @@ def main():
     upstream_url = f"https://github.com/{issue['repo_name']}.git"
     sync_upstream_and_branch(target_dir, upstream_url, f"fix-issue-{issue['number']}")
         
-        # Generate PR template script for the AI to use later
-        pr_script_path = os.path.join(target_dir, "create_pr.py")
-        with open(pr_script_path, "w") as f:
-            f.write(f'''import urllib.request, json, os, ssl
+    # Generate PR template script for the AI to use later
+    pr_script_path = os.path.join(target_dir, "create_pr.py")
+    with open(pr_script_path, "w") as f:
+        f.write(f'''import urllib.request, json, os, ssl
 ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
 token = os.environ.get("GITHUB_TOKEN")
 payload = {{"title": "Fix for issue #{issue['number']}", "body": "Closes #{issue['number']}\\n\\nImplemented automated fix.", "head": "KartavyaDikshit:fix-issue-{issue['number']}", "base": "main"}}
