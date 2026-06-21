@@ -3,46 +3,46 @@ import time
 from github_api import search_issues, claim_issue, fork_repo
 from git_ops import clone_repo, sync_upstream_and_branch
 
-def main():
-    print("🚀 Starting Open-Source Bounty Hunter...")
-    
-    # Check for token (for claiming and forking)
+import os
+import time
+from github_api import search_issues, claim_issue, fork_repo
+from git_ops import clone_repo, sync_upstream_and_branch
+
+def run_pipeline():
+    # Check for token
     token = os.environ.get("GITHUB_TOKEN")
     if not token:
-        print("[!] WARNING: GITHUB_TOKEN environment variable not set.")
-        print("[!] The bot will run in 'Discovery Only' mode (no claiming/forking).")
-        print("[!] To enable full automation, run: export GITHUB_TOKEN='your_pat_here'\n")
+        print("[!] WARNING: GITHUB_TOKEN not set. Exiting loop.")
+        return False
 
-    # 1. Discover an issue
-    issue = search_issues(keyword="machine-learning")
+    # Search for high-quality ML, Data Science, and AI issues 
+    # (Perfect for Werkstudent ML roles in Europe/Germany)
+    print("\n[*] Scanning GitHub for fresh AI/ML/Data Science 'good first issues'...")
+    issue = search_issues(keyword="machine-learning OR deep-learning OR data-science")
     if not issue:
-        print("[-] No new unclaimed issues found right now. Sleeping...")
-        return
+        print("[-] No new unclaimed issues found right now. Sleeping for 10 minutes...")
+        return True
         
     print(f"\n🎯 FOUND TARGET:")
     print(f"Repository: {issue['repo_name']}")
     print(f"Issue #{issue['number']}: {issue['title']}")
     print(f"Link: {issue['html_url']}\n")
 
-    if not token:
-        print("[-] Stopping here. Set GITHUB_TOKEN to automate claiming and forking.")
-        return
-
-    # 2. Claim the issue
+    # Claim the issue
     claimed = claim_issue(issue['repo_name'], issue['number'], token)
     if not claimed:
         print("[-] Aborting pipeline due to claim failure.")
-        return
+        return True
         
-    time.sleep(2) # Brief pause for GitHub API
+    time.sleep(2)
         
-    # 3. Fork the repository
+    # Fork the repository
     fork_url = fork_repo(issue['repo_name'], token)
     if not fork_url:
         print("[-] Aborting pipeline due to fork failure.")
-        return
+        return True
         
-    # 4. Clone locally
+    # Clone locally
     repo_basename = issue['repo_name'].split('/')[-1]
     target_dir = os.path.abspath(f"../{repo_basename}_bounty")
     
@@ -51,11 +51,13 @@ def main():
     else:
         clone_repo(fork_url, target_dir)
     
-    # SYNC WITH UPSTREAM AND BRANCH (Always run this, even if directory already existed!)
+    # SAFE SYNC: Prevents all Git conflicts and rebases by wiping local state
     upstream_url = f"https://github.com/{issue['repo_name']}.git"
-    sync_upstream_and_branch(target_dir, upstream_url, f"fix-issue-{issue['number']}")
+    success = sync_upstream_and_branch(target_dir, upstream_url, f"fix-issue-{issue['number']}")
+    if not success:
+        return True
         
-    # Generate PR template script for the AI to use later
+    # Generate auto-cleanup PR script
     pr_script_path = os.path.join(target_dir, "create_pr.py")
     with open(pr_script_path, "w") as f:
         f.write(f'''import urllib.request, json, os, ssl, shutil
@@ -67,18 +69,23 @@ try:
     with urllib.request.urlopen(req, context=ctx) as r: 
         print("[+] PR Created:", json.loads(r.read())['html_url'])
         print("[*] Cleaning up local repository to save storage...")
-        # Move one directory up before deleting
         os.chdir("..")
         shutil.rmtree("{target_dir}", ignore_errors=True)
 except Exception as e: print("[!] PR Failed:", e)
 ''')
         
-    # 5. Hand off to Agent
     print(f"\n🎉 PIPELINE COMPLETE!")
-    print(f"The repository is ready for you (or an AI agent) at: {{target_dir}}")
-    print(f"Branch 'fix-issue-{issue['number']}' is checked out.")
-    print("CRITICAL: AGENT MUST NOW WRITE CODE, COMMIT IT, AND PUSH TO THE FORK!")
-    print("Once pushed, run `python3 create_pr.py` to automatically open the Pull Request.")
+    print(f"Branch 'fix-issue-{issue['number']}' is ready at {target_dir}.")
+    print("CRITICAL: AGENT MUST NOW WRITE CODE AND PUSH TO THE FORK!")
+    return False # Pause loop so Agent can write code
+
+def main():
+    print("🚀 Starting Infinite Open-Source Bounty Hunter Daemon...")
+    while True:
+        continue_loop = run_pipeline()
+        if not continue_loop:
+            break
+        time.sleep(600)
 
 if __name__ == "__main__":
     main()
