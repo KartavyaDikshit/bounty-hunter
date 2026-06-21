@@ -14,7 +14,7 @@ def main():
         print("[!] To enable full automation, run: export GITHUB_TOKEN='your_pat_here'\n")
 
     # 1. Discover an issue
-    issue = search_issues(keyword='topic:machine-learning OR topic:data-science OR topic:ai label:"good first issue"')
+    issue = search_issues(keyword="machine-learning")
     if not issue:
         print("[-] No new unclaimed issues found right now. Sleeping...")
         return
