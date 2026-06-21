@@ -1,7 +1,7 @@
 import os
 import time
 from github_api import search_issues, claim_issue, fork_repo
-from git_ops import clone_repo, create_branch
+from git_ops import clone_repo, sync_upstream_and_branch
 
 def main():
     print("🚀 Starting Open-Source Bounty Hunter...")
@@ -50,7 +50,10 @@ def main():
         print(f"[-] Directory {target_dir} already exists. Skipping clone.")
     else:
         clone_repo(fork_url, target_dir)
-        create_branch(target_dir, f"fix-issue-{issue['number']}")
+    
+    # SYNC WITH UPSTREAM AND BRANCH (Always run this, even if directory already existed!)
+    upstream_url = f"https://github.com/{issue['repo_name']}.git"
+    sync_upstream_and_branch(target_dir, upstream_url, f"fix-issue-{issue['number']}")
         
         # Generate PR template script for the AI to use later
         pr_script_path = os.path.join(target_dir, "create_pr.py")
